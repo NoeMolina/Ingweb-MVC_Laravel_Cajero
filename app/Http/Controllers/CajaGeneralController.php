@@ -10,17 +10,16 @@ use PDO;
 class CajaGeneralController extends Controller
 {
     public function index(){
-        $caja = CajaGeneral::all();
-        return view("index",['cajaGeneral'=>$caja]);
+        return view("index",);
     }
 
     public function verCaja(){
-        $cajaGeneral = CajaGeneral::all();
+        $cajaGeneral = CajaGeneral::obtenerCajaGeneral(1);
         return view('verCaja', compact('cajaGeneral'));
     }
 
     public function abrirCaja(Request $request){
-        $success = CajaGeneral::abrirCaja();
+        $success = CajaGeneral::abrirCaja(1);
         if($success){
             return redirect()->route('home')->with('success', 'Transaccion realizada con exito');
         } else{
@@ -30,7 +29,7 @@ class CajaGeneralController extends Controller
     }
 
     public function agregarBilletes(Request $request){
-        $success = CajaGeneral::agregarBilletes();
+        $success = CajaGeneral::agregarBilletes(1);
         if($success){
             return redirect()->route('home')->with('success', 'Transaccion realizada con exito');
         } else{
@@ -45,7 +44,7 @@ class CajaGeneralController extends Controller
 
         $importe = $request->input('importe');
         try {
-            $resultado = CajaGeneral::canjearCheque($importe);
+            $resultado = CajaGeneral::canjearCheque($importe,1);
             return view('index', ['resultado' => $resultado]);
         } catch (\Exception $e) {
             return redirect()->route('home')->with('error', $e->getMessage());

@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use App\Models\Apertura_Caja_General;
+use App\ServiciosTecnicos\CajaGeneralBD;
+use Illuminate\Database\Eloquent\Model;
 
 class CajaGeneral extends Model
 {
@@ -15,92 +16,86 @@ class CajaGeneral extends Model
     protected $keyType = 'string';
     public $timestamps = false;
 
-    public function ContenidoCaja()
+    public static function ContenidoCaja()
     {
-        $contenidoCaja = CajaGeneral::all();
+        $contenidoCaja = CajaGeneralBD::all();
 
         return $contenidoCaja;
     }
 
-    public static function abrirCaja()
+    public static function abrirCaja($Tienda)
     {
+        // Verificamos si la caja puede ser abierta
         if (!Apertura_Caja_General::AbrirCaja()) {
             return false;
         }
-        DB::transaction(function () {
-            $cajaGeneral = CajaGeneral::where('Tienda','=', 1)->lockForUpdate()->get();
-            foreach ($cajaGeneral as $caja) {
-                $caja->cant_disponible = rand(10, 50);
-                $caja->save();
-            }
-        });
-        return true;
+
+        $contCaja = CajaGeneralBD::ObtenerCajaGeneral($Tienda);
+        foreach ($contCaja as $money) {
+            //dd($money->cant_disponible);
+            $cantAgregar = rand(10, 50);
+            $money->cant_disponible += $cantAgregar;
+        }
+
+        // Actualizamos las denominaciones en la base de datos usando Eloquent y el método save()
+        if (CajaGeneralBD::guardarObjeto($contCaja)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    public static function agregarBilletes()
+    public static function agregarBilletes($Tienda)
     {
-        $status = false;
-        DB::transaction(function () use (&$status) {
-            $cajaGeneral = CajaGeneral::where('Tienda', 1)->lockForUpdate()->get();
-            foreach ($cajaGeneral as $caja) {
-                $caja->cant_disponible += rand(10, 50);
-                $caja->save();
-            }
-            $status = true;
-        });
-        return $status;
+        $contCaja = CajaGeneralBD::ObtenerCajaGeneral($Tienda);
+        foreach ($contCaja as $money) {
+            //dd($money->cant_disponible);
+            $cantAgregar = rand(10, 50);
+            $money->cant_disponible += $cantAgregar;
+        }
+
+        // Actualizamos las denominaciones en la base de datos usando Eloquent y el método save()
+        if (CajaGeneralBD::guardarObjeto($contCaja)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    public static function canjearCheque($importe)
+    public static function canjearCheque($importe, $Tienda)
     {
         $resultado = [];
-
-        DB::transaction(function () use ($importe, &$resultado) {
-            $cajaGeneral = CajaGeneral::where('Tienda', 1)
-                ->lockForUpdate()
-                ->orderBy('Denominacion', 'desc')
-                ->get();
-
-                $actualizaciones = [];
-
-            foreach ($cajaGeneral as $billete) {
-                if ($importe <= 0) break;
-
-            $denominacion = $billete->Denominacion;
+        $contCaja = CajaGeneralBD::ObtenerCajaGeneral($Tienda);
+        foreach ($contCaja as $money) {
+            if ($importe <= 0) break;
+            $denominacion = $money->Denominacion;
             $cantidadNecesaria = intdiv($importe, $denominacion); // Número de billetes a retirar
-            $cantidadDisponible = $billete->cant_disponible;
+            $cantidadDisponible = $money->cant_disponible;
             // Calcular cuántos billetes retirar
             $aRetirar = min($cantidadNecesaria, $cantidadDisponible);
 
             // Restar el importe correspondiente
             $importe -= $aRetirar * $denominacion;
+            $money->cant_disponible -= $aRetirar;
+            $money->cant_retirada += $aRetirar;
 
-                if ($aRetirar > 0) {
-                    $resultado[] = [
-                        'denominacion' => $denominacion,
-                        'cantidad' => $aRetirar
-                    ];
-
-                // Acumulamos la cantidad a actualizar en el array
-                if (isset($actualizaciones[$denominacion])) {
-                    $actualizaciones[$denominacion] += $aRetirar;
-                } else {
-                    $actualizaciones[$denominacion] = $aRetirar;
-                }
-                }
+            if ($aRetirar > 0) {
+                $resultado[] = [
+                    'denominacion' => $denominacion,
+                    'cantidad' => $aRetirar
+                ];
             }
-            // Ahora guardamos todos los cambios de una vez
-            foreach ($actualizaciones as $denominacion => $cantidadRetirar) {
-                CajaGeneral::where('Tienda', 1)
-                    ->where('Denominacion', $denominacion)
-                    ->decrement('cant_disponible', $cantidadRetirar); // Realizamos el decremento
-            }
-
-            if ($importe > 0) {
-                throw new \Exception("Fondos insuficientes en caja para canjear el cheque.");
-            }
-        });
-
+        }
+        if ($importe > 0) {
+            CajaGeneralBD::BAD();
+            throw new \Exception("Fondos insuficientes en caja para canjear el cheque.");
+        }
+        CajaGeneralBD::guardarObjeto($contCaja);
         return $resultado;
+    }
+    public static function obtenerCajaGeneral($Tienda)
+    {
+        $contCaja = CajaGeneralBD::ObtenerCajaGeneral($Tienda);
+        return $contCaja;
     }
 }

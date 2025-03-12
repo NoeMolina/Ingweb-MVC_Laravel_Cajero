@@ -11,7 +11,7 @@
     <label>Contenido de Caja general</label>
     <ul>
         @foreach ( $cajaGeneral as $caja )
-        <li>{{ $caja->Denominacion }}: {{ $caja->cant_disponible }}</li>
+        <li>{{ $caja->Denominacion }}: {{ $caja->cant_disponible }}: {{$caja->cant_retirada}}</li>
         @endforeach
 
     </ul>
