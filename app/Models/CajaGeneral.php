@@ -7,14 +7,8 @@ use App\Models\Apertura_Caja_General;
 use App\ServiciosTecnicos\CajaGeneralBD;
 use Illuminate\Database\Eloquent\Model;
 
-class CajaGeneral extends Model
+class CajaGeneral
 {
-    protected $table = "caja_general";
-    protected $fillable = ["valor", "cantidad"];
-    protected $primaryKey = null;
-    public $incrementing = false;
-    protected $keyType = 'string';
-    public $timestamps = false;
 
     public static function ContenidoCaja()
     {
@@ -26,7 +20,7 @@ class CajaGeneral extends Model
     public static function abrirCaja($Tienda)
     {
         // Verificamos si la caja puede ser abierta
-        if (!Apertura_Caja_General::AbrirCaja()) {
+        if (!Apertura_Caja_General::AbrirCaja($Tienda)) {
             return false;
         }
 

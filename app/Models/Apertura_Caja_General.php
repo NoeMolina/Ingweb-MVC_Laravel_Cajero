@@ -1,30 +1,22 @@
 <?php
 
 namespace App\Models;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
+use App\ServiciosTecnicos\AperturaCajaBD;
 
-class Apertura_Caja_General extends Model
+class Apertura_Caja_General
 {
-    protected $table = "apertura_caja_general";
-    protected $fillable = ["Tienda","Apertura"];
-    protected $primaryKey = null;    
-    public $incrementing = false;
-    protected $keyType = 'string';
-    public $timestamps = false;
-
-
-    public static function AbrirCaja()
+    public static function AbrirCaja($tienda)
     {
         $status = false;
-        DB::transaction(function () use (&$status) {
-            $isOpen = Apertura_Caja_General::where('Tienda','=', 1)->lockForUpdate()->first();
-            if ($isOpen && $isOpen->Apertura == 0) {
-                $isOpen->Apertura = 1;
-                $isOpen->save(); // Llamada al método save en la instancia del modelo
-                $status = true;
+        $apertura = AperturaCajaBD::getCajaGeneral($tienda);
+        if ($apertura->Apertura == 0) {
+            $apertura->Apertura = 1;
+            try {
+                AperturaCajaBD::guardarObjeto($apertura);
+            } catch (\Throwable $th) {
             }
-        });
+            $status = true;
+        }
         return $status;
     }
 }
