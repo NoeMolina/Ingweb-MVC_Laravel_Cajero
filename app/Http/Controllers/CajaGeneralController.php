@@ -41,7 +41,7 @@ class CajaGeneralController extends Controller
         $request->validate([
             'importe' => 'required|integer|min:1',
         ]);
-
+        
         $importe = $request->input('importe');
         try {
             $resultado = CajaGeneral::canjearCheque($importe,1);

@@ -28,7 +28,7 @@ class CajaGeneral
         foreach ($contCaja as $money) {
             //dd($money->cant_disponible);
             $cantAgregar = rand(10, 50);
-            $money->cant_disponible += $cantAgregar;
+            $money->cant_disponible = $cantAgregar;
         }
 
         // Actualizamos las denominaciones en la base de datos usando Eloquent y el método save()
@@ -43,7 +43,7 @@ class CajaGeneral
     {
         $contCaja = CajaGeneralBD::ObtenerCajaGeneral($Tienda);
         foreach ($contCaja as $money) {
-            //dd($money->cant_disponible);
+            //($money);
             $cantAgregar = rand(10, 50);
             $money->cant_disponible += $cantAgregar;
         }
@@ -59,26 +59,30 @@ class CajaGeneral
     public static function canjearCheque($importe, $Tienda)
     {
         $resultado = [];
-        $contCaja = CajaGeneralBD::ObtenerCajaGeneral($Tienda);
-        foreach ($contCaja as $money) {
-            if ($importe <= 0) break;
-            $denominacion = $money->Denominacion;
-            $cantidadNecesaria = intdiv($importe, $denominacion); // Número de billetes a retirar
-            $cantidadDisponible = $money->cant_disponible;
-            // Calcular cuántos billetes retirar
-            $aRetirar = min($cantidadNecesaria, $cantidadDisponible);
+        try {
+            $contCaja = CajaGeneralBD::ObtenerCajaGeneral($Tienda);
+            foreach ($contCaja as $money) {
+                if ($importe <= 0) break;
+                $denominacion = $money->Denominacion;
+                $cantidadNecesaria = intdiv($importe, $denominacion); // Número de billetes a retirar
+                $cantidadDisponible = $money->cant_disponible;
+                // Calcular cuántos billetes retirar
+                $aRetirar = min($cantidadNecesaria, $cantidadDisponible);
 
-            // Restar el importe correspondiente
-            $importe -= $aRetirar * $denominacion;
-            $money->cant_disponible -= $aRetirar;
-            $money->cant_retirada += $aRetirar;
+                // Restar el importe correspondiente
+                $importe -= $aRetirar * $denominacion;
+                $money->cant_disponible -= $aRetirar;
+                $money->cant_retirada += $aRetirar;
 
-            if ($aRetirar > 0) {
-                $resultado[] = [
-                    'denominacion' => $denominacion,
-                    'cantidad' => $aRetirar
-                ];
+                if ($aRetirar > 0) {
+                    $resultado[] = [
+                        'denominacion' => $denominacion,
+                        'cantidad' => $aRetirar
+                    ];
+                }
             }
+        } catch (\Throwable $th) {
+            throw new \Exception("Error al acceder a la caja general.");
         }
         if ($importe > 0) {
             CajaGeneralBD::BAD();
